@@ -34,7 +34,7 @@ typedef struct LISTA {
 	struct NO_LISTA * fim;
 } LISTA;
 
-//ALOCA MEMÓRIA
+//ALOCA MEMÃ“RIA
 
 LISTA * aloca_lista() {
 	LISTA * lista = (LISTA *) malloc(sizeof(LISTA));
@@ -267,7 +267,7 @@ void removerDuplaAdjacencia(GRAFO * grafo, char n1[TAM], char n2[TAM]) {
 }
 
 void imprimirListaAdjacencia(GRAFO * grafo) {
-    int i;
+	int i;
 	for(i=0; i<tamLista(grafo->nos); i++) {
 		printf("\nNO: %s ||| ADJACENTES: ", get(grafo->nos, i)->no_grafo->info);
 		imprimeLista(get(grafo->nos, i)->no_grafo->adjacentes);
