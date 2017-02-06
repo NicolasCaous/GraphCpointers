@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #define TAM 30
 
@@ -34,7 +35,7 @@ typedef struct LISTA {
 	struct NO_LISTA * fim;
 } LISTA;
 
-//ALOCA MEMÃ“RIA
+//ALOCA MEMÓRIA
 
 LISTA * aloca_lista() {
 	LISTA * lista = (LISTA *) malloc(sizeof(LISTA));
@@ -137,7 +138,7 @@ void imprimeListaAux(NO_LISTA * no) {
 	if(no == NULL) {
 		return;
 	} else {
-		printf("%s ", no->no_grafo->info);
+		printf("%s -> ", no->no_grafo->info);
 		imprimeListaAux(no->prox);
 	}
 }
@@ -194,7 +195,7 @@ int removerFim(LISTA * lista) {
 	}
 }
 
-int removerListaAux(LISTA * lista, NO_LISTA * no, char valor[TAM]) {
+int removerListaAux(LISTA * lista, NO_LISTA * no, char valor[TAM], int delet) {
 	if(no == NULL) {
 		return 0;
 	} else if(strcmp(no->no_grafo->info, valor) == 0) {
@@ -208,15 +209,28 @@ int removerListaAux(LISTA * lista, NO_LISTA * no, char valor[TAM]) {
 			ant->prox = prox;
 			prox->ant = ant;
 			no->prox = no->ant = NULL;
+			if(delet == 1) {
+                free(no->no_grafo->adjacentes);
+                free(no->no_grafo);
+			}
 			free(no);
 		}
 	} else {
-		return removerListaAux(lista, no->prox, valor);
+		return removerListaAux(lista, no->prox, valor, delet);
 	}
 }
 
-int removerLista(LISTA * lista, char valor[TAM]) {
-	return removerListaAux(lista, lista->ini, valor);
+int removerLista(LISTA * lista, char valor[TAM], int delet) {
+	return removerListaAux(lista, lista->ini, valor, delet);
+}
+
+LISTA * copiaLista(LISTA * lista) {
+    LISTA * copiado = aloca_lista();
+    int i;
+    for(i=0; i<tamLista(lista); i++) {
+        inserir_lista_fim(copiado, get(lista, i)->no_grafo->info);
+    }
+    return copiado;
 }
 
 //GRAFO
@@ -249,50 +263,87 @@ void removerNo(GRAFO * grafo, char valor[TAM]) {
 	int tam = tamLista(grafo->nos);
 	int i;
 	for(i=0; i<tam; i++) {
-		removerLista(get(grafo->nos, i)->no_grafo->adjacentes, valor);
+		removerLista(get(grafo->nos, i)->no_grafo->adjacentes, valor, 0);
 	}
-	removerLista(grafo->nos, valor);
+	removerLista(grafo->nos, valor, 1);
 }
 
 void removerAdjacencia(GRAFO * grafo, char n1[TAM], char n2[TAM]) {
 	if(contemLista(getIgualInfo(grafo->nos, n1)->no_grafo->adjacentes, n2) == 1)
-		removerLista(getIgualInfo(grafo->nos, n1)->no_grafo->adjacentes, n2);
+		removerLista(getIgualInfo(grafo->nos, n1)->no_grafo->adjacentes, n2, 0);
 }
 
 void removerDuplaAdjacencia(GRAFO * grafo, char n1[TAM], char n2[TAM]) {
 	if(contemLista(getIgualInfo(grafo->nos, n1)->no_grafo->adjacentes, n2) == 1)
-		removerLista(getIgualInfo(grafo->nos, n1)->no_grafo->adjacentes, n2);
+		removerLista(getIgualInfo(grafo->nos, n1)->no_grafo->adjacentes, n2, 0);
 	if(contemLista(getIgualInfo(grafo->nos, n2)->no_grafo->adjacentes, n1) == 1)
-		removerLista(getIgualInfo(grafo->nos, n2)->no_grafo->adjacentes, n1);
+		removerLista(getIgualInfo(grafo->nos, n2)->no_grafo->adjacentes, n1, 0);
 }
 
 void imprimirListaAdjacencia(GRAFO * grafo) {
-	int i;
+    int i;
 	for(i=0; i<tamLista(grafo->nos); i++) {
 		printf("\nNO: %s ||| ADJACENTES: ", get(grafo->nos, i)->no_grafo->info);
 		imprimeLista(get(grafo->nos, i)->no_grafo->adjacentes);
 	}
 }
 
+int menorCaminhoAux(GRAFO * grafo, NO_LISTA * no, LISTA * percorridos, NO_LISTA * b, int tam) {
+    imprimeLista(percorridos);
+    printf("NO ATUAL: %s\n", no->no_grafo->info);
+    if(strcmp(no->no_grafo->info, b->no_grafo->info) == 0) {
+        return tam;
+    } else if(contemLista(percorridos, no->no_grafo->info) == 1) {
+        return INT_MAX;
+    } else {
+        inserir_lista_fim(percorridos, no->no_grafo->info);
+        int menor = INT_MAX;
+        int i;
+        for(i=0; i<tamLista(no->no_grafo->adjacentes); i++) {
+            int tmp = menorCaminhoAux(grafo, getIgualInfo(grafo->nos, get(no->no_grafo->adjacentes, i)->no_grafo->info), percorridos, b, tam + 1);
+            if(tmp < menor)
+                menor = tmp;
+        }
+        removerFim(percorridos);
+        return menor;
+    }
+}
+
+int menorCaminho(GRAFO * grafo, char a[TAM], char b[TAM]) {
+    return menorCaminhoAux(grafo, getIgualInfo(grafo->nos, a), aloca_lista(), getIgualInfo(grafo->nos, b), 0);
+}
+
 int main(void) {
 
 	GRAFO * grafo = aloca_grafo();
-	char teste[TAM] = {'a', 'b', 'c'};
-	char teste2[TAM] = {'d', 'e', 'f'};
-	char teste3[TAM] = {'g', 'h', 'i'};
-	char teste4[TAM] = {'j', 'k', 'l'};
-	adicionarNo(grafo, teste);
-	adicionarNo(grafo, teste2);
-	adicionarNo(grafo, teste3);
-	adicionarNo(grafo, teste4);
-	adicionarAdjacencia(grafo, teste, teste2);
-	adicionarAdjacencia(grafo, teste, teste3);
-	adicionarAdjacencia(grafo, teste2, teste);
-	adicionarDuplaAdjacencia(grafo, teste2, teste3);
-	adicionarDuplaAdjacencia(grafo, teste3, teste4);
-	adicionarDuplaAdjacencia(grafo, teste2, teste4);
-	removerDuplaAdjacencia(grafo, teste, teste3);
+	char n1[TAM] = {'1'};
+	char n2[TAM] = {'2'};
+	char n3[TAM] = {'3'};
+	char n4[TAM] = {'4'};
+	char n5[TAM] = {'5'};
+	char n6[TAM] = {'6'};
+	char n7[TAM] = {'7'};
+	adicionarNo(grafo, n1);
+	adicionarNo(grafo, n2);
+	adicionarNo(grafo, n3);
+	adicionarNo(grafo, n4);
+	adicionarNo(grafo, n5);
+	adicionarNo(grafo, n6);
+	adicionarNo(grafo, n7);
+	adicionarAdjacencia(grafo, n1, n2);
+	adicionarDuplaAdjacencia(grafo, n2, n3);
+	adicionarAdjacencia(grafo, n3, n4);
+	adicionarAdjacencia(grafo, n4, n5);
+	adicionarDuplaAdjacencia(grafo, n5, n3);
+	adicionarDuplaAdjacencia(grafo, n5, n6);
+	adicionarAdjacencia(grafo, n6, n7);
+	adicionarAdjacencia(grafo, n7, n1);
+	int menor = menorCaminho(grafo, n1, n7);
+	if(menor == INT_MAX) {
+        printf("\nNAO EXISTE CAMINHO\n");
+	} else {
+	    printf("\nMENOR CAMINHO: %d\n", menor);
+	}
 	imprimirListaAdjacencia(grafo);
-
-	return 0;
+	return (0x0);
 }
